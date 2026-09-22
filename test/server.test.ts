@@ -18,6 +18,9 @@ class FakeSession {
   async screenshot(): Promise<Buffer> {
     return Buffer.from("png");
   }
+  async setExtraHeaders(): Promise<void> {
+    /* no-op */
+  }
 }
 
 class FakeManager {
@@ -74,7 +77,7 @@ describe("createServer wiring", () => {
   it("registers all browser tools", async () => {
     const { client } = await connect();
     const { tools } = await client.listTools();
-    expect(tools).toHaveLength(23);
+    expect(tools).toHaveLength(24);
     const names = tools.map((t) => t.name);
     expect(names).toContain("browser_create_session");
     expect(names).toContain("browser_tabs");
@@ -110,6 +113,17 @@ describe("createServer wiring", () => {
     expect(image?.type === "image" ? image.mimeType : "").toBe("image/png");
     expect(image?.type === "image" ? image.data.length : 0).toBeGreaterThan(0);
   });
+
+  it("sets extra headers on a session", async () => {
+    const { client } = await connect();
+    await callTool(client, "browser_create_session", { sessionId: "a" });
+    const result = await callTool(client, "browser_set_headers", {
+      sessionId: "a",
+      headers: { "X-Trace": "1" },
+    });
+    expect(result.isError).toBeFalsy();
+    expect(firstText(result)).toContain("1 header");
+  });
 });
 
 describe("createServer error mapping (in-band, never thrown)", () => {
@@ -118,6 +132,16 @@ describe("createServer error mapping (in-band, never thrown)", () => {
     const result = await callTool(client, "browser_navigate", {
       sessionId: "ghost",
       url: "https://example.com",
+    });
+    expect(result.isError).toBe(true);
+    expect(firstText(result)).toContain("SESSION_NOT_FOUND");
+  });
+
+  it("maps SESSION_NOT_FOUND for browser_set_headers on an unknown session", async () => {
+    const { client } = await connect();
+    const result = await callTool(client, "browser_set_headers", {
+      sessionId: "ghost",
+      headers: { "X-Trace": "1" },
     });
     expect(result.isError).toBe(true);
     expect(firstText(result)).toContain("SESSION_NOT_FOUND");

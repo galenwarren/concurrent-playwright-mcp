@@ -241,6 +241,16 @@ export class BrowserSession {
     await (await this.page()).setViewportSize({ width, height });
   }
 
+  /**
+   * Set the extra HTTP headers sent with every request from this session,
+   * replacing (not merging with) any previously set headers — matches
+   * Playwright's own {@link BrowserContext.setExtraHTTPHeaders} semantics.
+   * Pass `{}` to clear.
+   */
+  async setExtraHeaders(headers: Record<string, string>): Promise<void> {
+    await this.#context.setExtraHTTPHeaders(headers);
+  }
+
   /** Capture a PNG of the active page and return the bytes. */
   async screenshot(fullPage: boolean): Promise<Buffer> {
     return (await this.page()).screenshot({ fullPage });

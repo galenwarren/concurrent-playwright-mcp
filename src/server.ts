@@ -360,6 +360,24 @@ export function createServer(
     },
   );
 
+  tool(
+    "browser_set_headers",
+    {
+      title: "Set extra HTTP headers",
+      description:
+        "Set the extra HTTP headers sent with every request in the session, replacing any " +
+        "previously set headers (not merged). Pass an empty object to clear them.",
+      inputSchema: {
+        sessionId: SESSION,
+        headers: z.record(z.string(), z.string()).describe("Header name/value pairs"),
+      },
+    },
+    async ({ sessionId, headers }) => {
+      await manager.get(sessionId).setExtraHeaders(headers);
+      return `Set ${String(Object.keys(headers).length)} header(s) for session '${sessionId}'.`;
+    },
+  );
+
   // --- Inspection ------------------------------------------------------------
 
   tool(

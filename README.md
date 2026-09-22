@@ -199,6 +199,7 @@ integrators. Optional params are marked `?`. Every tool takes `sessionId` except
 | `browser_wait_for`         | `selector`, `state?`, `timeout?`                   | confirmation                       |
 | `browser_press_key`        | `key`                                              | confirmation                       |
 | `browser_resize`           | `width`, `height`                                  | confirmation                       |
+| `browser_set_headers`      | `headers`                                          | confirmation                       |
 | `browser_console_messages` | `onlyErrors?`                                      | JSON                               |
 | `browser_network_requests` | —                                                  | JSON                               |
 | `browser_handle_dialog`    | `accept`, `promptText?`                            | confirmation                       |

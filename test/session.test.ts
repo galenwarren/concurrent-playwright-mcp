@@ -64,11 +64,16 @@ class FakePage {
 class FakeContext {
   readonly pagesList: FakePage[] = [];
   readonly #pageListeners: ((page: FakePage) => void)[] = [];
+  lastHeaders: Record<string, string> | null = null;
 
   on(event: string, handler: (page: FakePage) => void): void {
     if (event === "page") {
       this.#pageListeners.push(handler);
     }
+  }
+
+  async setExtraHTTPHeaders(headers: Record<string, string>): Promise<void> {
+    this.lastHeaders = headers;
   }
 
   async newPage(): Promise<FakePage> {
@@ -204,6 +209,28 @@ describe("BrowserSession navigation", () => {
       page.goBackResult = { ok: true };
     }
     expect(await session.navigateBack()).toBe(true);
+  });
+});
+
+describe("BrowserSession headers", () => {
+  it("forwards extra headers to the context", async () => {
+    const { session, context } = makeSession();
+    await session.setExtraHeaders({ "X-Trace": "1" });
+    expect(context.lastHeaders).toEqual({ "X-Trace": "1" });
+  });
+
+  it("replaces rather than merges on a second call", async () => {
+    const { session, context } = makeSession();
+    await session.setExtraHeaders({ "X-Trace": "1", Authorization: "Bearer a" });
+    await session.setExtraHeaders({ "X-Trace": "2" });
+    expect(context.lastHeaders).toEqual({ "X-Trace": "2" });
+  });
+
+  it("clears headers when called with {}", async () => {
+    const { session, context } = makeSession();
+    await session.setExtraHeaders({ "X-Trace": "1" });
+    await session.setExtraHeaders({});
+    expect(context.lastHeaders).toEqual({});
   });
 });
 
