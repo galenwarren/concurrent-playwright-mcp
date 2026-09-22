@@ -28,6 +28,7 @@ export type { SessionErrorCode } from "./errors";
 export { BrowserSession } from "./session";
 export type {
   BrowserSessionOptions,
+  CdpTargetInfo,
   ConsoleMessage,
   ElementTarget,
   FormField,

@@ -111,7 +111,7 @@ describe("Streamable HTTP transport", () => {
   it("serves tools/list over HTTP", async () => {
     const client = await connect();
     const { tools } = await client.listTools();
-    expect(tools).toHaveLength(23);
+    expect(tools).toHaveLength(24);
     expect(tools.map((t) => t.name)).toContain("browser_create_session");
   });
 

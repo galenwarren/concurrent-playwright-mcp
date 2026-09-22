@@ -164,6 +164,19 @@ export function createServer(
   );
 
   tool(
+    "browser_target_info",
+    {
+      title: "Get CDP target info",
+      description:
+        "Get the Chrome DevTools Protocol target info (targetId, type, title, url, ...) for the " +
+        "session's active page, e.g. to correlate this session with a live CDP target for " +
+        "out-of-band debugging/inspection.",
+      inputSchema: { sessionId: SESSION },
+    },
+    async ({ sessionId }) => JSON.stringify(await manager.get(sessionId).cdpTargetInfo(), null, 2),
+  );
+
+  tool(
     "browser_save_storage_state",
     {
       title: "Save storage state",

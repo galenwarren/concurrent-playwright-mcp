@@ -186,6 +186,7 @@ integrators. Optional params are marked `?`. Every tool takes `sessionId` except
 | `browser_list_sessions`      | — (takes no `sessionId`)         | JSON array of live session ids     |
 | `browser_close_session`      | —                                | confirmation                       |
 | `browser_save_storage_state` | `path`                           | path to saved cookies+localStorage |
+| `browser_target_info`        | —                                | the session's CDP target info      |
 
 **Navigation & inspection**
 

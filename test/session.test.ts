@@ -61,9 +61,34 @@ class FakePage {
   }
 }
 
+const FAKE_TARGET_INFO = {
+  targetId: "fake-target-id",
+  type: "page",
+  title: "Example",
+  url: "https://example.com/",
+  attached: true,
+  browserContextId: "fake-context-id",
+};
+
+class FakeCDPSession {
+  detached = false;
+
+  async send(method: string): Promise<unknown> {
+    if (method === "Target.getTargetInfo") {
+      return { targetInfo: FAKE_TARGET_INFO };
+    }
+    throw new Error(`unexpected CDP method '${method}'`);
+  }
+
+  async detach(): Promise<void> {
+    this.detached = true;
+  }
+}
+
 class FakeContext {
   readonly pagesList: FakePage[] = [];
   readonly #pageListeners: ((page: FakePage) => void)[] = [];
+  lastCDPSession: FakeCDPSession | null = null;
 
   on(event: string, handler: (page: FakePage) => void): void {
     if (event === "page") {
@@ -82,6 +107,11 @@ class FakeContext {
 
   pages(): FakePage[] {
     return this.pagesList;
+  }
+
+  async newCDPSession(): Promise<FakeCDPSession> {
+    this.lastCDPSession = new FakeCDPSession();
+    return this.lastCDPSession;
   }
 
   async close(): Promise<void> {
@@ -204,6 +234,25 @@ describe("BrowserSession navigation", () => {
       page.goBackResult = { ok: true };
     }
     expect(await session.navigateBack()).toBe(true);
+  });
+});
+
+describe("BrowserSession CDP target info", () => {
+  it("returns the full CDP target info for the active page, and detaches the session", async () => {
+    const { session, context } = makeSession();
+    await session.page();
+
+    const targetInfo = await session.cdpTargetInfo();
+
+    expect(targetInfo).toEqual(FAKE_TARGET_INFO);
+    expect(context.lastCDPSession?.detached).toBe(true);
+  });
+
+  it("creates the active page on first use, same as other tools", async () => {
+    const { session, context } = makeSession();
+    const targetInfo = await session.cdpTargetInfo();
+    expect(targetInfo.targetId).toBe("fake-target-id");
+    expect(context.pagesList).toHaveLength(1);
   });
 });
 

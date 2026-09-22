@@ -23,6 +23,26 @@ export interface TabInfo {
   title: string;
 }
 
+/**
+ * Chrome DevTools Protocol target info for a page — the same shape Chromium's
+ * own `Target.getTargetInfo` and `/json/list` endpoint report. Declared locally
+ * because Playwright's `Protocol` namespace isn't part of its public export
+ * surface (only `playwright-core`'s package root is), so depending on it
+ * directly isn't portable.
+ */
+export interface CdpTargetInfo {
+  targetId: string;
+  type: string;
+  title: string;
+  url: string;
+  attached: boolean;
+  openerId?: string;
+  canAccessOpener?: boolean;
+  openerFrameId?: string;
+  browserContextId?: string;
+  subtype?: string;
+}
+
 /** States a selector can be waited for, mirroring Playwright's own set. */
 export type WaitForState = "attached" | "detached" | "visible" | "hidden";
 
@@ -270,6 +290,22 @@ export class BrowserSession {
   /** Network responses captured so far. */
   networkResponses(): NetworkResponse[] {
     return [...this.#networkResponses];
+  }
+
+  /**
+   * The Chrome DevTools Protocol target info for the session's active page —
+   * includes the same `targetId` Chromium's own `/json/list` endpoint reports,
+   * so a caller can correlate this session with a live CDP target (e.g. to
+   * build a debugging URL) without guessing from page title/URL.
+   */
+  async cdpTargetInfo(): Promise<CdpTargetInfo> {
+    const cdpSession = await this.#context.newCDPSession(await this.page());
+    try {
+      const { targetInfo } = await cdpSession.send("Target.getTargetInfo");
+      return targetInfo;
+    } finally {
+      await cdpSession.detach();
+    }
   }
 
   /** Write this session's cookies + localStorage to a Playwright storageState file. */

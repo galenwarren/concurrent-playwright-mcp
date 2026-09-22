@@ -18,6 +18,9 @@ class FakeSession {
   async screenshot(): Promise<Buffer> {
     return Buffer.from("png");
   }
+  async cdpTargetInfo(): Promise<{ targetId: string; type: string }> {
+    return { targetId: "fake-target-id", type: "page" };
+  }
 }
 
 class FakeManager {
@@ -74,7 +77,7 @@ describe("createServer wiring", () => {
   it("registers all browser tools", async () => {
     const { client } = await connect();
     const { tools } = await client.listTools();
-    expect(tools).toHaveLength(23);
+    expect(tools).toHaveLength(24);
     const names = tools.map((t) => t.name);
     expect(names).toContain("browser_create_session");
     expect(names).toContain("browser_tabs");
@@ -110,6 +113,14 @@ describe("createServer wiring", () => {
     expect(image?.type === "image" ? image.mimeType : "").toBe("image/png");
     expect(image?.type === "image" ? image.data.length : 0).toBeGreaterThan(0);
   });
+
+  it("returns the session's CDP target info", async () => {
+    const { client } = await connect();
+    await callTool(client, "browser_create_session", { sessionId: "a" });
+    const result = await callTool(client, "browser_target_info", { sessionId: "a" });
+    expect(result.isError).toBeFalsy();
+    expect(JSON.parse(firstText(result))).toEqual({ targetId: "fake-target-id", type: "page" });
+  });
 });
 
 describe("createServer error mapping (in-band, never thrown)", () => {
@@ -119,6 +130,13 @@ describe("createServer error mapping (in-band, never thrown)", () => {
       sessionId: "ghost",
       url: "https://example.com",
     });
+    expect(result.isError).toBe(true);
+    expect(firstText(result)).toContain("SESSION_NOT_FOUND");
+  });
+
+  it("maps SESSION_NOT_FOUND for browser_target_info on an unknown session", async () => {
+    const { client } = await connect();
+    const result = await callTool(client, "browser_target_info", { sessionId: "ghost" });
     expect(result.isError).toBe(true);
     expect(firstText(result)).toContain("SESSION_NOT_FOUND");
   });
