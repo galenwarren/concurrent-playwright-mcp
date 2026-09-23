@@ -42,7 +42,7 @@ export type { UrlPolicy } from "./policy/url-policy";
 export { resolveWithinDir } from "./policy/path-policy";
 
 export { chromiumLauncher } from "./playwright-launcher";
-export type { LaunchOptions } from "./playwright-launcher";
+export type { LaunchOptions, ProxyOptions } from "./playwright-launcher";
 
 export { createServer } from "./server";
 

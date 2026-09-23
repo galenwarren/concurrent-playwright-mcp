@@ -1,6 +1,6 @@
 import path from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { loadConfig } from "../src/config";
+import { describeConfig, loadConfig } from "../src/config";
 
 /** Silence (and capture) the stderr warnings loadConfig emits for bad input. */
 function muteWarnings() {
@@ -22,6 +22,7 @@ describe("loadConfig", () => {
       actionTimeoutMs: 15000,
     });
     expect(config.launch.headless).toBe(true);
+    expect(config.launch.proxy).toBeUndefined();
     expect(config.security.allowFileUrls).toBe(false);
     expect(config.security.allowedOrigins).toBeUndefined();
     expect(config.security.uploadDir).toBeUndefined();
@@ -98,5 +99,54 @@ describe("loadConfig", () => {
     const config = loadConfig({ PW_ALLOWED_ORIGINS: "https://ok.com, not-a-url" });
     expect(config.security.allowedOrigins).toEqual(["https://ok.com"]);
     expect(warn).toHaveBeenCalled();
+  });
+
+  describe("proxy", () => {
+    it("passes a proxy server with credentials through to the launch options", () => {
+      const config = loadConfig({
+        PW_PROXY_URL: "http://proxy.internal:3128",
+        PW_PROXY_USERNAME: "alice",
+        PW_PROXY_PASSWORD: "s3cret",
+      });
+      expect(config.launch.proxy).toEqual({
+        server: "http://proxy.internal:3128",
+        username: "alice",
+        password: "s3cret",
+      });
+    });
+
+    it("accepts a server without credentials, or without a scheme", () => {
+      expect(loadConfig({ PW_PROXY_URL: "socks5://proxy:1080" }).launch.proxy).toEqual({
+        server: "socks5://proxy:1080",
+      });
+      expect(loadConfig({ PW_PROXY_URL: " proxy.internal:3128 " }).launch.proxy).toEqual({
+        server: "proxy.internal:3128",
+      });
+    });
+
+    it("treats an empty server as unset", () => {
+      expect(loadConfig({ PW_PROXY_URL: "  " }).launch.proxy).toBeUndefined();
+    });
+
+    it("warns when credentials are set without a server", () => {
+      const warn = muteWarnings();
+      const config = loadConfig({ PW_PROXY_USERNAME: "alice", PW_PROXY_PASSWORD: "s3cret" });
+      expect(config.launch.proxy).toBeUndefined();
+      expect(warn).toHaveBeenCalled();
+    });
+
+    it("never logs the proxy credentials", () => {
+      const summary = describeConfig(
+        loadConfig({
+          PW_PROXY_URL: "http://proxy:3128",
+          PW_PROXY_USERNAME: "alice",
+          PW_PROXY_PASSWORD: "s3cret",
+        }),
+      );
+      expect(summary).toContain("proxy=http://proxy:3128");
+      expect(summary).not.toContain("alice");
+      expect(summary).not.toContain("s3cret");
+      expect(describeConfig(loadConfig({}))).toContain("proxy=(none)");
+    });
   });
 });

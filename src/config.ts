@@ -154,6 +154,18 @@ export function loadConfig(env: Env = process.env): AppConfig {
   if (executablePath !== undefined) {
     launch.executablePath = executablePath;
   }
+  const proxyUrl = env.PW_PROXY_URL?.trim();
+  const proxyUsername = env.PW_PROXY_USERNAME;
+  const proxyPassword = env.PW_PROXY_PASSWORD;
+  if (proxyUrl !== undefined && proxyUrl !== "") {
+    launch.proxy = {
+      server: proxyUrl,
+      ...(proxyUsername !== undefined ? { username: proxyUsername } : {}),
+      ...(proxyPassword !== undefined ? { password: proxyPassword } : {}),
+    };
+  } else if (proxyUsername !== undefined || proxyPassword !== undefined) {
+    warn("PW_PROXY_USERNAME/PW_PROXY_PASSWORD are set without PW_PROXY_URL; ignoring them.");
+  }
 
   const manager: ManagerConfig = {
     maxSessions: envInt(env, "PW_MAX_SESSIONS", DEFAULT_MAX_SESSIONS, 1),
@@ -192,6 +204,8 @@ export function describeConfig(config: AppConfig): string {
   return [
     `transport=${where}`,
     `headless=${String(launch.headless ?? true)}`,
+    // Server only — credentials are never logged.
+    `proxy=${launch.proxy?.server ?? "(none)"}${launch.proxy?.username !== undefined || launch.proxy?.password !== undefined ? " (auth)" : ""}`,
     `maxSessions=${String(manager.maxSessions)}`,
     `idleTimeoutMs=${String(manager.idleTimeoutMs)}`,
     `maxTabs=${String(manager.maxTabs)}`,
