@@ -20,6 +20,7 @@ describe("loadConfig", () => {
       maxTabs: 20,
       maxCaptureEntries: 1000,
       actionTimeoutMs: 15000,
+      defaultViewport: { width: 1440, height: 900 },
     });
     expect(config.launch.headless).toBe(true);
     expect(config.launch.proxy).toBeUndefined();
@@ -99,6 +100,35 @@ describe("loadConfig", () => {
     const config = loadConfig({ PW_ALLOWED_ORIGINS: "https://ok.com, not-a-url" });
     expect(config.security.allowedOrigins).toEqual(["https://ok.com"]);
     expect(warn).toHaveBeenCalled();
+  });
+
+  describe("viewport", () => {
+    it("parses WIDTHxHEIGHT", () => {
+      expect(loadConfig({ PW_VIEWPORT: " 1920X1080 " }).manager.defaultViewport).toEqual({
+        width: 1920,
+        height: 1080,
+      });
+    });
+
+    it("parses 'none' as no viewport emulation", () => {
+      expect(loadConfig({ PW_VIEWPORT: "None" }).manager.defaultViewport).toBeNull();
+    });
+
+    it("warns on an invalid value and keeps the default", () => {
+      const warn = muteWarnings();
+      for (const value of ["", "1920", "0x1080", "1920x-1", "1.5x2", "big"]) {
+        expect(loadConfig({ PW_VIEWPORT: value }).manager.defaultViewport).toEqual({
+          width: 1440,
+          height: 900,
+        });
+      }
+      expect(warn).toHaveBeenCalledTimes(6);
+    });
+
+    it("is included in the config summary", () => {
+      expect(describeConfig(loadConfig({ PW_VIEWPORT: "none" }))).toContain("viewport=none");
+      expect(describeConfig(loadConfig({}))).toContain("viewport=1440x900");
+    });
   });
 
   describe("proxy", () => {

@@ -84,6 +84,16 @@ describe("SessionManager isolation", () => {
     expect(browser.contexts[0]?.viewport).toEqual({ width: 1440, height: 900 });
     expect(browser.contexts[1]?.viewport).toEqual({ width: 375, height: 812 });
   });
+
+  it("uses a configured default viewport, including null for the native window size", async () => {
+    const { manager, browser } = setup({ defaultViewport: null });
+    await manager.createSession("native");
+    await manager.createSession("mobile", { viewport: { width: 375, height: 812 } });
+
+    expect(manager.defaultViewport).toBeNull();
+    expect(browser.contexts[0]?.viewport).toBeNull();
+    expect(browser.contexts[1]?.viewport).toEqual({ width: 375, height: 812 });
+  });
 });
 
 describe("SessionManager browser lifecycle", () => {

@@ -34,6 +34,12 @@ export interface SessionManagerOptions {
   maxCaptureEntries?: number;
   /** Per-action timeout (ms) for element interactions. Default 15000. */
   actionTimeoutMs?: number;
+  /**
+   * Viewport for sessions created without one. `null` disables viewport
+   * emulation, so pages see the real OS window and screen (headful). Default
+   * {@link DEFAULT_VIEWPORT}.
+   */
+  defaultViewport?: Viewport | null;
   /** Clock, injectable for deterministic tests. Defaults to Date.now. */
   now?: () => number;
 }
@@ -67,6 +73,7 @@ export class SessionManager {
   readonly #maxTabs: number;
   readonly #maxCaptureEntries: number;
   readonly #actionTimeoutMs: number;
+  readonly #defaultViewport: Viewport | null;
   readonly #now: () => number;
   #sweepTimer: ReturnType<typeof setInterval> | null = null;
 
@@ -77,12 +84,19 @@ export class SessionManager {
     this.#maxTabs = options.maxTabs ?? DEFAULT_MAX_TABS;
     this.#maxCaptureEntries = options.maxCaptureEntries ?? DEFAULT_MAX_CAPTURE_ENTRIES;
     this.#actionTimeoutMs = options.actionTimeoutMs ?? DEFAULT_ACTION_TIMEOUT_MS;
+    this.#defaultViewport =
+      options.defaultViewport === undefined ? DEFAULT_VIEWPORT : options.defaultViewport;
     this.#now = options.now ?? Date.now;
   }
 
   /** Number of live sessions. */
   get size(): number {
     return this.#sessions.size;
+  }
+
+  /** Viewport applied to sessions created without one; `null` = no emulation. */
+  get defaultViewport(): Viewport | null {
+    return this.#defaultViewport;
   }
 
   has(sessionId: string): boolean {
@@ -110,7 +124,7 @@ export class SessionManager {
     }
     const browser = await this.#provider.acquire();
     const contextOptions: BrowserContextOptions = {
-      viewport: options.viewport ?? DEFAULT_VIEWPORT,
+      viewport: options.viewport ?? this.#defaultViewport,
     };
     if (options.storageStatePath !== undefined) {
       contextOptions.storageState = options.storageStatePath;

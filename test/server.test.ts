@@ -5,7 +5,7 @@ import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { SessionNotFoundError } from "../src/errors";
 import { createServer, type SecurityConfig } from "../src/server";
-import type { SessionManager } from "../src/session-manager";
+import type { CreateSessionOptions, SessionManager, Viewport } from "../src/session-manager";
 
 /** A no-Playwright stand-in for the session layer — server tests exercise wiring, not the browser. */
 class FakeSession {
@@ -25,8 +25,11 @@ class FakeSession {
 
 class FakeManager {
   readonly live = new Set<string>();
-  async createSession(id: string): Promise<FakeSession> {
+  readonly created: CreateSessionOptions[] = [];
+  constructor(readonly defaultViewport: Viewport | null = { width: 1440, height: 900 }) {}
+  async createSession(id: string, options: CreateSessionOptions = {}): Promise<FakeSession> {
     this.live.add(id);
+    this.created.push(options);
     return new FakeSession();
   }
   ids(): string[] {
@@ -50,8 +53,8 @@ const DEFAULT_SECURITY: SecurityConfig = {
 
 async function connect(
   security: SecurityConfig = DEFAULT_SECURITY,
+  manager: FakeManager = new FakeManager(),
 ): Promise<{ client: Client; manager: FakeManager }> {
-  const manager = new FakeManager();
   const server = createServer(manager as unknown as SessionManager, security);
   const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
   const client = new Client({ name: "test-client", version: "0.0.0" });
@@ -90,6 +93,18 @@ describe("createServer wiring", () => {
     const result = await callTool(client, "browser_list_sessions", {});
     expect(result.isError).toBeFalsy();
     expect(firstText(result)).toContain("a");
+  });
+
+  it("leaves the viewport to the manager's default unless one is given", async () => {
+    const { client, manager } = await connect(DEFAULT_SECURITY, new FakeManager(null));
+    const native = await callTool(client, "browser_create_session", { sessionId: "a" });
+    const sized = await callTool(client, "browser_create_session", {
+      sessionId: "b",
+      viewport: { width: 375, height: 812 },
+    });
+    expect(manager.created).toEqual([{}, { viewport: { width: 375, height: 812 } }]);
+    expect(firstText(native)).toContain("native window size");
+    expect(firstText(sized)).toContain("375x812");
   });
 
   it("serializes a void evaluate result as 'undefined' (not an invalid block)", async () => {

@@ -222,26 +222,32 @@ integrators. Optional params are marked `?`. Every tool takes `sessionId` except
 Invalid values (e.g. a negative `PW_MAX_SESSIONS`) are rejected with a warning on stderr and the
 default is used; the effective config is logged to stderr at startup.
 
-| Var                    | Default     | Meaning                                                                |
-| ---------------------- | ----------- | ---------------------------------------------------------------------- |
-| `PW_HEADLESS`          | `true`      | `false` to show browser windows                                        |
-| `PW_MAX_SESSIONS`      | `50`        | Hard cap on live sessions                                              |
-| `PW_MAX_TABS`          | `20`        | Hard cap on tabs per session                                           |
-| `PW_MAX_CAPTURE`       | `1000`      | Max console/network entries retained per session                       |
-| `PW_IDLE_TIMEOUT_MS`   | `0` (off)   | Evict a session after this long with no use                            |
-| `PW_OUTPUT_DIR`        | `./output`  | Directory screenshots are written to (paths confined to it)            |
-| `PW_UPLOAD_DIR`        | unset (any) | Confine `browser_file_upload` paths to this directory                  |
-| `PW_ALLOWED_ORIGINS`   | unset (any) | Comma-separated origin allowlist for navigation                        |
-| `PW_ALLOW_FILE_URLS`   | `false`     | Allow `file:`/`data:` navigation                                       |
-| `PW_ACTION_TIMEOUT_MS` | `15000`     | Per-action timeout for element interactions                            |
-| `PW_EXECUTABLE_PATH`   | unset       | Use a specific Chromium build                                          |
-| `PW_PROXY_URL`         | unset       | Route browser traffic through this proxy (`http`/`https`/`socks5` URL) |
-| `PW_PROXY_USERNAME`    | unset       | Proxy auth username (requires `PW_PROXY_URL`)                          |
-| `PW_PROXY_PASSWORD`    | unset       | Proxy auth password (requires `PW_PROXY_URL`; never logged)            |
-| `PW_TRANSPORT`         | `stdio`     | `http` to serve over Streamable HTTP                                   |
-| `PW_HOST`              | `127.0.0.1` | Host to bind in `http` mode                                            |
-| `PW_PORT`              | `3000`      | Port to bind in `http` mode                                            |
-| `PW_ALLOWED_HOSTS`     | unset       | Extra `Host` values accepted in `http` mode (see below)                |
+| Var                    | Default     | Meaning                                                                          |
+| ---------------------- | ----------- | -------------------------------------------------------------------------------- |
+| `PW_HEADLESS`          | `true`      | `false` to show browser windows                                                  |
+| `PW_MAX_SESSIONS`      | `50`        | Hard cap on live sessions                                                        |
+| `PW_MAX_TABS`          | `20`        | Hard cap on tabs per session                                                     |
+| `PW_MAX_CAPTURE`       | `1000`      | Max console/network entries retained per session                                 |
+| `PW_IDLE_TIMEOUT_MS`   | `0` (off)   | Evict a session after this long with no use                                      |
+| `PW_OUTPUT_DIR`        | `./output`  | Directory screenshots are written to (paths confined to it)                      |
+| `PW_UPLOAD_DIR`        | unset (any) | Confine `browser_file_upload` paths to this directory                            |
+| `PW_ALLOWED_ORIGINS`   | unset (any) | Comma-separated origin allowlist for navigation                                  |
+| `PW_ALLOW_FILE_URLS`   | `false`     | Allow `file:`/`data:` navigation                                                 |
+| `PW_ACTION_TIMEOUT_MS` | `15000`     | Per-action timeout for element interactions                                      |
+| `PW_VIEWPORT`          | `1440x900`  | Default session viewport: `WIDTHxHEIGHT`, or `none` for no emulation (see below) |
+| `PW_EXECUTABLE_PATH`   | unset       | Use a specific Chromium build                                                    |
+| `PW_PROXY_URL`         | unset       | Route browser traffic through this proxy (`http`/`https`/`socks5` URL)           |
+| `PW_PROXY_USERNAME`    | unset       | Proxy auth username (requires `PW_PROXY_URL`)                                    |
+| `PW_PROXY_PASSWORD`    | unset       | Proxy auth password (requires `PW_PROXY_URL`; never logged)                      |
+| `PW_TRANSPORT`         | `stdio`     | `http` to serve over Streamable HTTP                                             |
+| `PW_HOST`              | `127.0.0.1` | Host to bind in `http` mode                                                      |
+| `PW_PORT`              | `3000`      | Port to bind in `http` mode                                                      |
+| `PW_ALLOWED_HOSTS`     | unset       | Extra `Host` values accepted in `http` mode (see below)                          |
+
+`PW_VIEWPORT=none` turns off viewport emulation, so pages see the real browser window and screen.
+Use it for headful runs (e.g. under Xvfb) where an emulated viewport would report a window larger
+than the screen. Size the window yourself, e.g. with `--window-size`. An explicit `viewport` on
+`browser_create_session`, or a `browser_resize` call, still emulates a viewport for that session.
 
 ## Security model
 

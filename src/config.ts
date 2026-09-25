@@ -5,6 +5,8 @@ import {
   DEFAULT_MAX_CAPTURE_ENTRIES,
   DEFAULT_MAX_SESSIONS,
   DEFAULT_MAX_TABS,
+  DEFAULT_VIEWPORT,
+  type Viewport,
 } from "./session-manager";
 
 /**
@@ -35,6 +37,8 @@ export interface ManagerConfig {
   maxTabs: number;
   maxCaptureEntries: number;
   actionTimeoutMs: number;
+  /** Viewport for sessions created without one; `null` disables emulation. */
+  defaultViewport: Viewport | null;
 }
 
 /** How the server is exposed: stdio (default) or a Streamable HTTP listener. */
@@ -109,6 +113,30 @@ function parseTransportMode(env: Env): "stdio" | "http" {
   return "stdio";
 }
 
+/** Parse `WIDTHxHEIGHT` (positive integers) or `none` (no viewport emulation). */
+function parseViewport(env: Env, name: string): Viewport | null {
+  const value = env[name];
+  if (value === undefined) {
+    return DEFAULT_VIEWPORT;
+  }
+  const normalized = value.trim().toLowerCase();
+  if (normalized === "none") {
+    return null;
+  }
+  const match = /^([1-9]\d*)x([1-9]\d*)$/.exec(normalized);
+  if (match?.[1] === undefined || match[2] === undefined) {
+    warn(
+      `${name}='${value}' is not WIDTHxHEIGHT or 'none'; using ${formatViewport(DEFAULT_VIEWPORT)}.`,
+    );
+    return DEFAULT_VIEWPORT;
+  }
+  return { width: Number(match[1]), height: Number(match[2]) };
+}
+
+function formatViewport(viewport: Viewport | null): string {
+  return viewport === null ? "none" : `${String(viewport.width)}x${String(viewport.height)}`;
+}
+
 /** Parse a comma-separated origin list, normalizing each to scheme://host:port. */
 function parseOrigins(env: Env, name: string): string[] | undefined {
   const value = env[name];
@@ -173,6 +201,7 @@ export function loadConfig(env: Env = process.env): AppConfig {
     maxTabs: envInt(env, "PW_MAX_TABS", DEFAULT_MAX_TABS, 1),
     maxCaptureEntries: envInt(env, "PW_MAX_CAPTURE", DEFAULT_MAX_CAPTURE_ENTRIES, 1),
     actionTimeoutMs: envInt(env, "PW_ACTION_TIMEOUT_MS", DEFAULT_ACTION_TIMEOUT_MS, 1),
+    defaultViewport: parseViewport(env, "PW_VIEWPORT"),
   };
 
   const allowedOrigins = parseOrigins(env, "PW_ALLOWED_ORIGINS");
@@ -211,6 +240,7 @@ export function describeConfig(config: AppConfig): string {
     `maxTabs=${String(manager.maxTabs)}`,
     `maxCapture=${String(manager.maxCaptureEntries)}`,
     `actionTimeoutMs=${String(manager.actionTimeoutMs)}`,
+    `viewport=${formatViewport(manager.defaultViewport)}`,
     `outputDir=${security.outputDir}`,
     `allowFileUrls=${String(security.allowFileUrls)}`,
     `allowedOrigins=${security.allowedOrigins ? security.allowedOrigins.join(",") : "(any)"}`,

@@ -57,6 +57,7 @@ function configFor(port: number): AppConfig {
       maxTabs: 20,
       maxCaptureEntries: 1000,
       actionTimeoutMs: 15000,
+      defaultViewport: { width: 1440, height: 900 },
     },
     security: { outputDir: "output", allowFileUrls: false },
     transport: { mode: "http", host: "127.0.0.1", port },

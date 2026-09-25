@@ -8,7 +8,7 @@ import { DEFAULT_SECURITY, type SecurityConfig } from "./config";
 import { InvalidArgumentError, SessionError } from "./errors";
 import { assertUrlAllowed } from "./policy/url-policy";
 import { resolveWithinDir } from "./policy/path-policy";
-import { DEFAULT_VIEWPORT, type SessionManager } from "./session-manager";
+import type { SessionManager } from "./session-manager";
 
 export type { SecurityConfig } from "./config";
 
@@ -122,8 +122,8 @@ export function createServer(
         sessionId: SESSION,
         viewport: z
           .object({ width: z.number().int().positive(), height: z.number().int().positive() })
-          .default(DEFAULT_VIEWPORT)
-          .describe("Viewport size"),
+          .optional()
+          .describe("Viewport size (defaults to the server's configured viewport)"),
         storageStatePath: z
           .string()
           .optional()
@@ -131,12 +131,16 @@ export function createServer(
       },
     },
     async ({ sessionId, viewport, storageStatePath }) => {
-      const options =
-        storageStatePath === undefined
-          ? { viewport }
-          : { viewport, storageStatePath: resolveWithinDir(security.outputDir, storageStatePath) };
-      await manager.createSession(sessionId, options);
-      return `Created session '${sessionId}' (${String(viewport.width)}x${String(viewport.height)}).`;
+      await manager.createSession(sessionId, {
+        ...(viewport !== undefined ? { viewport } : {}),
+        ...(storageStatePath !== undefined
+          ? { storageStatePath: resolveWithinDir(security.outputDir, storageStatePath) }
+          : {}),
+      });
+      const size = viewport ?? manager.defaultViewport;
+      const described =
+        size === null ? "native window size" : `${String(size.width)}x${String(size.height)}`;
+      return `Created session '${sessionId}' (${described}).`;
     },
   );
 
