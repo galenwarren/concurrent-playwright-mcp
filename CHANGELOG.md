@@ -4,6 +4,14 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+### Added
+
+- `start(config, provider)` library entrypoint (exported with the `RunningTransport` type), so
+  callers can run the server with their own `BrowserLauncher`, e.g. one that connects to a remote
+  Chrome over CDP. The CLI now delegates to it.
+
 ## [0.1.0] — Unreleased
 
 Initial public release.

@@ -38,8 +38,9 @@ Use `@playwright/mcp` for a single browser; use this when many agents or tasks e
 ## Architecture
 
 ```
-cli.ts                  entrypoint: load config → pick transport
+cli.ts                  entrypoint: load config → start (process signals/exit)
   ├─ config.ts          parse + validate env into a typed config
+  ├─ start.ts           library entrypoint: output dir → pick transport → closable handle
   ├─ transport/stdio.ts run over stdio (default)
   ├─ transport/http.ts  run Streamable HTTP: a session manager per client, one shared browser
   ├─ browser-provider.ts  the shared, lazily-launched, memoized Browser (a port)
@@ -171,6 +172,28 @@ Configuration happens at **three layers**:
 Security limits live **only** in the server layer — an agent can't widen them (it can't escape
 `PW_OUTPUT_DIR` or bypass `PW_ALLOWED_ORIGINS`). Per-call args are validated at the edge with
 defaults, so the agent can omit the optional ones.
+
+## Use it as a library
+
+The CLI is a thin wrapper over `start(config, provider)`. Call it yourself to supply a custom
+`BrowserLauncher`, e.g. to drive an already-running Chrome over CDP instead of launching one:
+
+```ts
+import { chromium } from "playwright";
+import { BrowserProvider, loadConfig, start } from "concurrent-playwright-mcp";
+
+const config = loadConfig(); // same PW_* env vars as the CLI
+const provider = new BrowserProvider(() => chromium.connectOverCDP("http://127.0.0.1:9222"));
+const running = await start(config, provider);
+
+process.once("SIGTERM", () => void running.close());
+```
+
+`start` creates `PW_OUTPUT_DIR`, serves on the configured transport, and returns a handle whose
+`close()` stops the transport and then closes the provider's browser (for a CDP connection, that
+closes this server's contexts and disconnects; it does not kill the remote Chrome). Launch-only
+settings (`PW_HEADLESS`, `PW_EXECUTABLE_PATH`, `PW_PROXY_*`) apply only to `chromiumLauncher`, so a
+custom launcher ignores them. Signal handling and process exit stay with the caller.
 
 ## Tools
 

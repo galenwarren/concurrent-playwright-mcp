@@ -1,21 +1,13 @@
 #!/usr/bin/env node
-import { mkdir } from "node:fs/promises";
 import { BrowserProvider } from "./browser-provider";
 import { describeConfig, loadConfig } from "./config";
 import { chromiumLauncher } from "./playwright-launcher";
-import { runHttp } from "./transport/http";
-import { runStdio } from "./transport/stdio";
+import { start } from "./start";
 
 async function main(): Promise<void> {
   const config = loadConfig();
-  // Ensure the output directory (screenshots, storage-state) exists up front.
-  await mkdir(config.security.outputDir, { recursive: true });
-
   const provider = new BrowserProvider(chromiumLauncher(config.launch));
-  const transport =
-    config.transport.mode === "http"
-      ? await runHttp(config, provider)
-      : await runStdio(config, provider);
+  const running = await start(config, provider);
 
   let shuttingDown = false;
   const shutdown = async (): Promise<void> => {
@@ -24,8 +16,7 @@ async function main(): Promise<void> {
     }
     shuttingDown = true;
     try {
-      await transport.close();
-      await provider.close();
+      await running.close();
     } finally {
       process.exit(0);
     }

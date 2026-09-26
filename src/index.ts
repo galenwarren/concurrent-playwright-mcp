@@ -45,6 +45,8 @@ export { chromiumLauncher } from "./playwright-launcher";
 export type { LaunchOptions, ProxyOptions } from "./playwright-launcher";
 
 export { createServer } from "./server";
+export { start } from "./start";
+export type { RunningTransport } from "./transport/stdio";
 
 export { loadConfig, describeConfig, DEFAULT_SECURITY } from "./config";
 export type { AppConfig, ManagerConfig, TransportConfig, SecurityConfig } from "./config";

@@ -52,8 +52,9 @@ Conventions for humans and AI agents working in this repo. Keep changes consiste
 
 ```
 src/
-  cli.ts                 entrypoint (shebang); load config → pick transport
+  cli.ts                 entrypoint (shebang); load config → start; signals/exit
   config.ts              env parsing/validation into a typed AppConfig
+  start.ts               library entrypoint: output dir → pick transport → closable handle
   transport/stdio.ts     run over stdio
   transport/http.ts      run Streamable HTTP (manager per client, shared browser)
   server.ts              MCP edge: Zod validation + defaults, ref targeting, error map
@@ -71,6 +72,7 @@ test/
   session.test.ts          unit (fake context/page) — capture, tabs, dialogs
   server.test.ts           in-memory MCP round-trip — wiring + error mapping + policy
   transport-http.test.ts   HTTP round-trip + per-client isolation (no Chromium)
+  start.test.ts            output dir creation + close() tears down transport and browser
   policy/*.test.ts errors.test.ts config.test.ts  pure-unit coverage
   integration.test.ts      real-Chromium isolation, gated by RUN_INTEGRATION=1
   e2e.test.ts              multiple deterministic journeys THROUGH the MCP server, RUN_INTEGRATION=1
